@@ -6,6 +6,8 @@ Zephyr is a real-time RFID payment platform with an ESP8266 reader, Flask backen
 
 ### **[http://157.173.101.159:9224/](http://157.173.101.159:9224/)**
 
+Frontend Link: http://157.173.101.159:9224/topup
+
 ## Features
 
 - Real-time RFID card scan updates over MQTT + Socket.IO.
