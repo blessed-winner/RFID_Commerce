@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZEPHYR | Consolidated Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;600&family=Inter:wght@300;400;600&family=JetBrains+Mono:wght@300&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --gold: #d4af37;
+            --matte-black: #0d0d0d;
+            --border-white: rgba(255, 255, 255, 0.08);
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--matte-black);
+            color: #d1d5db;
+            background-image: radial-gradient(circle at 15% 10%, rgba(212, 175, 55, 0.09), transparent 36%), url("https://www.transparenttextures.com/patterns/dark-matter.png");
+        }
+        .serif-display { font-family: 'Cormorant Garamond', serif; }
+        .mono-elegant { font-family: 'JetBrains Mono', monospace; letter-spacing: 0.18em; font-size: 0.65rem; }
+        .panel { background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-white); }
+        .panel table tbody tr:nth-child(odd) { background: rgba(255, 255, 255, 0.01); }
+    </style>
+</head>
+<body class="min-h-screen pb-16">
+    <header class="px-6 md:px-12 py-8 border-b border-white/10 flex items-center justify-between">
+        <div>
+            <h1 class="serif-display text-4xl text-white uppercase tracking-widest">Consolidated Dashboard</h1>
+            <p class="mono-elegant text-gray-500 mt-2">BALANCES_TOPUPS_TRANSACTIONS</p>
+        </div>
+        <a href="{% if session['role'] == 'agent' %}/topup-dashboard{% else %}/payment-dashboard{% endif %}" class="mono-elegant text-gray-300 border border-white/15 px-4 py-2 hover:text-white transition-all">
+            BACK_TO_OPERATIONS
+        </a>
+    </header>
+
+    <main class="container mx-auto px-6 md:px-12 mt-10 max-w-[1700px]">
+        <section class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+            <div class="panel p-6">
+                <p class="mono-elegant text-gray-500">TOTAL_BALANCES</p>
+                <p id="total-balances" class="serif-display text-4xl text-white mt-4">{{ "{:,}".format(total_balances) }} <span class="text-lg">RWF</span></p>
+            </div>
+            <div class="panel p-6">
+                <p class="mono-elegant text-gray-500">TOTAL_TOPUPS</p>
+                <p id="total-topups" class="serif-display text-4xl text-white mt-4">{{ "{:,}".format(total_topups) }} <span class="text-lg">RWF</span></p>
+            </div>
+            <div class="panel p-6">
+                <p class="mono-elegant text-gray-500">TOTAL_PAYMENTS</p>
+                <p id="total-payments" class="serif-display text-4xl text-white mt-4">{{ "{:,}".format(total_payments) }} <span class="text-lg">RWF</span></p>
+            </div>
+        </section>
+
+        <section class="grid grid-cols-1 xl:grid-cols-3 gap-8">
+            <div class="panel overflow-hidden">
+                <div class="p-4 border-b border-white/10">
+                    <h2 class="serif-display text-2xl text-white">Balances</h2>
+                </div>
+                <div class="max-h-[560px] overflow-y-auto">
+                    <table class="w-full text-left">
+                        <thead class="mono-elegant text-gray-400 bg-white/5">
+                            <tr>
+                                <th class="p-4 font-thin">UID</th>
+                                <th class="p-4 font-thin text-right">BALANCE</th>
+                            </tr>
+                        </thead>
+                        <tbody id="balances-body" class="text-gray-200">
+                            {% for user in users %}
+                            <tr data-uid="{{ user.uid }}">
+                                <td class="p-4">{{ user.uid }}</td>
+                                <td class="p-4 text-right balance-cell">{{ "{:,}".format(user.balance) }} RWF</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="panel overflow-hidden">
+                <div class="p-4 border-b border-white/10">
+                    <h2 class="serif-display text-2xl text-white">Top-Ups</h2>
+                </div>
+                <div class="max-h-[560px] overflow-y-auto">
+                    <table class="w-full text-left">
+                        <thead class="mono-elegant text-gray-400 bg-white/5">
+                            <tr>
+                                <th class="p-4 font-thin">TIME</th>
+                                <th class="p-4 font-thin">UID</th>
+                                <th class="p-4 font-thin text-right">AMOUNT</th>
+                            </tr>
+                        </thead>
+                        <tbody id="topups-body" class="text-gray-200">
+                            {% for tx in topups %}
+                            <tr>
+                                <td class="p-4">{{ tx.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                                <td class="p-4">{{ tx.uid }}</td>
+                                <td class="p-4 text-right text-green-500">+{{ "{:,}".format(tx.amount) }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="panel overflow-hidden">
+                <div class="p-4 border-b border-white/10">
+                    <h2 class="serif-display text-2xl text-white">All Transactions</h2>
+                </div>
+                <div class="max-h-[560px] overflow-y-auto">
+                    <table class="w-full text-left">
+                        <thead class="mono-elegant text-gray-400 bg-white/5">
+                            <tr>
+                                <th class="p-4 font-thin">TIME</th>
+                                <th class="p-4 font-thin">TYPE</th>
+                                <th class="p-4 font-thin">UID</th>
+                                <th class="p-4 font-thin text-right">AMOUNT</th>
+                            </tr>
+                        </thead>
+                        <tbody id="transactions-body" class="text-gray-200">
+                            {% for tx in transactions %}
+                            <tr>
+                                <td class="p-4">{{ tx.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                                <td class="p-4">{{ tx.type }}</td>
+                                <td class="p-4">{{ tx.uid }}</td>
+                                <td class="p-4 text-right {{ 'text-green-500' if tx.type == 'TOP-UP' else 'text-white' }}">
+                                    {{ '+' if tx.type == 'TOP-UP' else '-' }}{{ "{:,}".format(tx.amount) }}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        const socket = io(`http://${window.location.hostname}:9224`);
+
+        function addTransaction(data) {
+            const txRow = document.createElement('tr');
+            txRow.innerHTML = `
+                <td class="p-4">${new Date().toISOString().slice(0, 19).replace('T', ' ')}</td>
+                <td class="p-4">${data.type}</td>
+                <td class="p-4">${data.uid}</td>
+                <td class="p-4 text-right ${data.type === 'TOP-UP' ? 'text-green-500' : 'text-white'}">
+                    ${data.type === 'TOP-UP' ? '+' : '-'}${Number(data.amount).toLocaleString()}
+                </td>
+            `;
+            document.getElementById('transactions-body').prepend(txRow);
+        }
+
+        function addTopup(data) {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td class="p-4">${new Date().toISOString().slice(0, 19).replace('T', ' ')}</td>
+                <td class="p-4">${data.uid}</td>
+                <td class="p-4 text-right text-green-500">+${Number(data.amount).toLocaleString()}</td>
+            `;
+            document.getElementById('topups-body').prepend(row);
+        }
+
+        function upsertBalance(data) {
+            const existing = document.querySelector(`#balances-body tr[data-uid="${data.uid}"]`);
+            if (existing) {
+                existing.querySelector('.balance-cell').innerText = `${Number(data.balance).toLocaleString()} RWF`;
+                return;
+            }
+            const row = document.createElement('tr');
+            row.setAttribute('data-uid', data.uid);
+            row.innerHTML = `
+                <td class="p-4">${data.uid}</td>
+                <td class="p-4 text-right balance-cell">${Number(data.balance).toLocaleString()} RWF</td>
+            `;
+            document.getElementById('balances-body').prepend(row);
+        }
+
+        socket.on('update_ui', (data) => {
+            upsertBalance(data);
+            if (data.type === 'TOP-UP' || data.type === 'PAYMENT') {
+                addTransaction(data);
+            }
+            if (data.type === 'TOP-UP') {
+                addTopup(data);
+            }
+        });
+    </script>
+</body>
+</html>
