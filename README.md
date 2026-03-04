@@ -30,6 +30,15 @@ Frontend Link: http://157.173.101.159:9224/topup
 - MQTT broker: `broker.benax.rw`
 - Topics: `rfid/team_zephyr/card/status`, `rfid/team_zephyr/card/pay`, `rfid/team_zephyr/card/topup`
 - Default login credentials: Agent `agent` / `agentpass`, Sales `sales` / `salespass`
+- SQLite URI in code: `sqlite:///zephyr.db`
+
+## Database and `instance/` Folder
+
+- Flask-SQLAlchemy resolves `sqlite:///zephyr.db` to the Flask instance path.
+- Expected local DB file: `instance/zephyr.db` (project root).
+- If `instance/` is missing, create it before starting the app.
+- On startup, `db.create_all()` creates tables automatically if the DB file does not exist.
+- Deleting `instance/zephyr.db` resets persisted data (cards, balances, transactions).
 
 ## Routes
 
